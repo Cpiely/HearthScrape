@@ -27,14 +27,15 @@ func SaveFile(file *xlsx.File) {
 }
 
 func PrintDeck(sheet *xlsx.Sheet, deck Deck, offset int) int{
+    sort.Sort(ByCost(deck.ClassKeys))
+    sort.Sort(ByCost(deck.NeutralKeys))
 
-    for i := offset; i < offset + 4 + len(deck.Keys); i++ {
+    for i := offset; i < offset + 5 + len(deck.ClassKeys) + len(deck.NeutralKeys); i++ {
         row := sheet.AddRow()
         for x := 0; x < 8; x++ {
             row.AddCell()
         }
     }
-
     sheet.Rows[offset].Cells[0].SetValue("Deck Name:")
     sheet.Rows[offset].Cells[1].SetValue(deck.Name)
     offset++
@@ -43,7 +44,7 @@ func PrintDeck(sheet *xlsx.Sheet, deck Deck, offset int) int{
     sheet.Rows[offset].Cells[2].SetValue("Deck Type:")
     sheet.Rows[offset].Cells[3].SetValue(deck.Type)
     offset++
-    sheet.Rows[offset].Cells[0].SetValue("Card Name:")
+    sheet.Rows[offset].Cells[0].SetValue("Class Card Name:")
     sheet.Rows[offset].Cells[2].SetValue("Card Cost:")
     sheet.Rows[offset].Cells[3].SetValue("Card Count:")
     sheet.Rows[offset].Cells[4].SetValue("Card Class:")
@@ -51,17 +52,29 @@ func PrintDeck(sheet *xlsx.Sheet, deck Deck, offset int) int{
     sheet.Rows[offset].Cells[6].SetValue("Attack:")
     sheet.Rows[offset].Cells[7].SetValue("Health:")
     offset++
-    sort.Sort(ByCost(deck.Keys))
-    for idx, card := range deck.Keys {
-        sheet.Rows[offset + idx].Cells[0].SetValue(card.Name)
-        sheet.Rows[offset + idx].Cells[2].SetValue(card.Cost)
-        sheet.Rows[offset + idx].Cells[3].SetValue(deck.CardList[card])
-        sheet.Rows[offset + idx].Cells[4].SetValue(card.Class)
-        sheet.Rows[offset + idx].Cells[5].SetValue(card.Type)
-        sheet.Rows[offset + idx].Cells[6].SetValue(card.Attack)
-        sheet.Rows[offset + idx].Cells[7].SetValue(card.Health)
+   
+    for cIdx, cCard := range deck.ClassKeys {
+        sheet.Rows[offset + cIdx].Cells[0].SetValue(cCard.Name)
+        sheet.Rows[offset + cIdx].Cells[2].SetValue(cCard.Cost)
+        sheet.Rows[offset + cIdx].Cells[3].SetValue(deck.CardList[cCard])
+        sheet.Rows[offset + cIdx].Cells[4].SetValue(cCard.Class)
+        sheet.Rows[offset + cIdx].Cells[5].SetValue(cCard.Type)
+        sheet.Rows[offset + cIdx].Cells[6].SetValue(cCard.Attack)
+        sheet.Rows[offset + cIdx].Cells[7].SetValue(cCard.Health)
     }
-    offset += len(deck.Keys) + 1
+    offset += len(deck.ClassKeys)
+    sheet.Rows[offset].Cells[0].SetValue("Neutral Card Name:")
+    offset++
+    for nIdx, nCard := range deck.NeutralKeys {
+        sheet.Rows[offset + nIdx].Cells[0].SetValue(nCard.Name)
+        sheet.Rows[offset + nIdx].Cells[2].SetValue(nCard.Cost)
+        sheet.Rows[offset + nIdx].Cells[3].SetValue(deck.CardList[nCard])
+        sheet.Rows[offset + nIdx].Cells[4].SetValue(nCard.Class)
+        sheet.Rows[offset + nIdx].Cells[5].SetValue(nCard.Type)
+        sheet.Rows[offset + nIdx].Cells[6].SetValue(nCard.Attack)
+        sheet.Rows[offset + nIdx].Cells[7].SetValue(nCard.Health)
+    }
+    offset += len(deck.NeutralKeys) + 1
     return offset
 
 }

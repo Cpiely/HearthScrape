@@ -3,9 +3,17 @@ package main
 type Deck struct {
 	Name string
 	Type string
+	Url string
+	Rating string
+	Cost string
+	Class string
+	Expansion string
+	DateCreated string
+	DateModified string
 	Mode string
 	CardList map[Card]int
-	Keys []Card
+	ClassKeys []Card
+	NeutralKeys []Card
 }
 
 type Card struct {

@@ -19,27 +19,13 @@ func NewScraper(url string) *Scraper {
 	return s
 }
 
-func (s *Scraper) FindInfo(cardIndex map[string]Card) Deck {
-	deck := s.InfoFinder(cardIndex)
-	deck = s.ModeFinder(deck)
-	deck = s.TypeFinder(deck)
-
-	return deck
-}
-
-func FindCard (cardList []Card, name string) Card{
-	for _, card := range cardList {
-		if card.Name == name {
-			return card
-		}
-	}  
-	return Card{}
-}
-
-func (s *Scraper) InfoFinder(cardIndex map[string]Card) Deck {
+func (s *Scraper) CardsFinder(classIndex, neutralIndex map[string]Card) Deck {
 	var err error
-	keys := make([]Card, 0)
+	classKeys := make([]Card, 0)
+	neutralKeys := make([]Card, 0)
 	cardList := make(map[Card]int)
+	card := Card{}
+	ok := true
 	//Finds each of the cards in the deck
 	s.document.Find("tr ").Each(func (i int, s *goquery.Selection) {
 		info := strings.TrimSpace(strings.Replace(s.Contents().Text(), "\n", "", -1))
@@ -48,21 +34,27 @@ func (s *Scraper) InfoFinder(cardIndex map[string]Card) Deck {
 		if len(splitInfo) == 2 {
 			numCost := string((strings.Split(splitInfo[1], " ")[2])[:])
 			//Change to have it add the card from the list of all cards 
-			card := cardIndex[splitInfo[0]]		
+			if card, ok = classIndex[splitInfo[0]]; !ok {
+				card = neutralIndex[splitInfo[0]]
+				neutralKeys = append(neutralKeys, card)
+			} else {
+				classKeys = append(classKeys, card)
+			}
+
 			cardList[card], err = strconv.Atoi(string(numCost[0]))
 			checkErr(err)
-			keys = append(keys, card)
 		}
 	})
 
 	deck := Deck {
 		CardList: cardList,
-		Keys: keys,
+		ClassKeys: classKeys,
+		NeutralKeys: neutralKeys,
 	}
 	return deck
 }
 
-func cardIndexing() map[string]Card {
+func cardIndexing() (map[string]Card ,map[string]Card) {
 	url := "http://www.hearthpwn.com/cards?display=1&filter-premium=1"
 	ext := "&page="
 
@@ -72,8 +64,11 @@ func cardIndexing() map[string]Card {
 		pages[i] = (url + ext + strconv.Itoa(i + 1))
 	}
 
-	cardList := make(map[string]Card, 0)
+	neutralList := make(map[string]Card, 0)
+	classList := make(map[string]Card, 0)
+
 	card := Card{}
+	neutral := false
 	for _, page := range pages {
 		index := 0
 		name := ""
@@ -89,8 +84,10 @@ func cardIndexing() map[string]Card {
 			case 3:
 				if info == "" {
 					card.Class = "Neutral"
+					neutral = true
 				} else {
 					card.Class = strings.TrimSpace(info)
+					neutral = false
 				}
 			case 4:
 				card.Cost = info
@@ -98,14 +95,18 @@ func cardIndexing() map[string]Card {
 				card.Attack = info
 			case 6:
 				card.Health = info
-				cardList[name] = card
+				if neutral {
+					neutralList[name] = card
+				} else { 	
+					classList[name] = card
+				}
 				card = Card{}
 				index = 0
 			}
 			index++
 		})
 	}
-	return cardList
+	return classList, neutralList
 }
 
 func (s *Scraper) ModeFinder(deck Deck) Deck {
@@ -117,18 +118,78 @@ func (s *Scraper) ModeFinder(deck Deck) Deck {
 	return deck
 }
 
-func (s *Scraper) TypeFinder(deck Deck) Deck{
-	s.document.Find("ul li span").Each(func (i int, s *goquery.Selection) {
+func (s *Scraper) InfoFinder(deck Deck) Deck{
+	date := (s.document.Find("li abbr").First().Text())
+	deck.DateModified = Date(date)
+
+	notFirst := true
+	s.document.Find("div").Each(func (i int, s *goquery.Selection) {
 		text := s.Contents().Text()
-		switch text {
-		case "Combo", "Tempo", "Aggro", "Control", "Midrange", "None", "Tournament" : 
- 			deck.Type = text
- 		case "Tavern Brawl":
- 			deck.Type = text
- 			deck.Mode = text
+		if strings.HasPrefix(text, "+") && notFirst{
+			deck.Rating = text
+			notFirst = false
 		}
 	})
-	return deck	
+
+	s.document.Find("ul li span").Each(func (i int, s *goquery.Selection) {
+		text := s.Contents().Text()
+		
+		switch i {
+		case 63:
+			deck.Class = text
+		case 64:
+			deck.Name = text
+		case 68:
+			if text == "Tavern Brawl"{
+				deck.Mode = text
+			}
+			deck.Type = text
+		case 67:
+			deck.Expansion = text
+		case 69:
+			deck.Cost = text
+		case 72:
+			created := strings.Split(text, " ")
+			deck.DateCreated = created[0]
+		}
+		
+	})
+	return deck
+}
+
+func Date (date string) string {
+	var newDate string
+	splitDate := strings.Split(date, " ")
+	switch splitDate[0]{
+		case "Jan":
+			newDate = strconv.Itoa(1) 
+		case "Feb":
+			newDate = strconv.Itoa(2) 
+		case "Mar":
+			newDate = strconv.Itoa(3) 
+		case "Apr":
+			newDate = strconv.Itoa(4) 
+		case "May":
+			newDate = strconv.Itoa(5) 
+		case "Jun":
+			newDate = strconv.Itoa(6) 
+		case "Jul":
+			newDate = strconv.Itoa(7) 
+		case "Aug":
+			newDate = strconv.Itoa(8) 
+		case "Sep":
+			newDate = strconv.Itoa(9) 
+		case "Oct":
+			newDate = strconv.Itoa(10) 
+		case "Nov":
+			newDate = strconv.Itoa(11) 
+		case "Dec": 
+			newDate = strconv.Itoa(12) 
+	} 
+	newDate += "/"
+	newDate += string(splitDate[1][:len(splitDate[1])-1]) + "/"
+	newDate += splitDate[2]
+	return newDate
 }
 
 func (s *Scraper) UrlFinder(tags string, prefix string) [] string {
