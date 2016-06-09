@@ -30,7 +30,7 @@ func PrintDeck(sheet *xlsx.Sheet, deck Deck, offset int) int{
     sort.Sort(ByCost(deck.ClassKeys))
     sort.Sort(ByCost(deck.NeutralKeys))
 
-    for i := offset; i < offset + 5 + len(deck.ClassKeys) + len(deck.NeutralKeys); i++ {
+    for i := offset; i < offset + 9 + len(deck.ClassKeys) + len(deck.NeutralKeys); i++ {
         row := sheet.AddRow()
         for x := 0; x < 8; x++ {
             row.AddCell()
@@ -38,43 +38,57 @@ func PrintDeck(sheet *xlsx.Sheet, deck Deck, offset int) int{
     }
     sheet.Rows[offset].Cells[0].SetValue("Deck Name:")
     sheet.Rows[offset].Cells[1].SetValue(deck.Name)
+    sheet.Rows[offset].Cells[3].SetValue("Class:")
+    sheet.Rows[offset].Cells[4].SetValue(deck.Class)
+    offset++
+    sheet.Rows[offset].Cells[0].SetValue("Url:")
+    sheet.Rows[offset].Cells[1].SetValue(deck.Url)
+    sheet.Rows[offset].Cells[3].SetValue("Deck Rating:")
+    sheet.Rows[offset].Cells[4].SetValue(deck.Rating)
     offset++
     sheet.Rows[offset].Cells[0].SetValue("Game Mode:")
     sheet.Rows[offset].Cells[1].SetValue(deck.Mode)
-    sheet.Rows[offset].Cells[2].SetValue("Deck Type:")
-    sheet.Rows[offset].Cells[3].SetValue(deck.Type)
+    if deck.Type != "Tavern Brawl" {
+        sheet.Rows[offset].Cells[2].SetValue("Deck Type:")
+        sheet.Rows[offset].Cells[3].SetValue(deck.Type)
+    }
+    sheet.Rows[offset].Cells[4].SetValue(deck.DateCreated)
     offset++
-    sheet.Rows[offset].Cells[0].SetValue("Class Card Name:")
-    sheet.Rows[offset].Cells[2].SetValue("Card Cost:")
-    sheet.Rows[offset].Cells[3].SetValue("Card Count:")
-    sheet.Rows[offset].Cells[4].SetValue("Card Class:")
-    sheet.Rows[offset].Cells[5].SetValue("Card Type:")
-    sheet.Rows[offset].Cells[6].SetValue("Attack:")
-    sheet.Rows[offset].Cells[7].SetValue("Health:")
+    sheet.Rows[offset].Cells[0].SetValue("Expansion:")
+    sheet.Rows[offset].Cells[1].SetValue(deck.Expansion)
+    sheet.Rows[offset].Cells[2].SetValue("Deck Cost:")
+    sheet.Rows[offset].Cells[3].SetValue(deck.Cost)
     offset++
-   
-    for cIdx, cCard := range deck.ClassKeys {
-        sheet.Rows[offset + cIdx].Cells[0].SetValue(cCard.Name)
-        sheet.Rows[offset + cIdx].Cells[2].SetValue(cCard.Cost)
-        sheet.Rows[offset + cIdx].Cells[3].SetValue(deck.CardList[cCard])
-        sheet.Rows[offset + cIdx].Cells[4].SetValue(cCard.Class)
-        sheet.Rows[offset + cIdx].Cells[5].SetValue(cCard.Type)
-        sheet.Rows[offset + cIdx].Cells[6].SetValue(cCard.Attack)
-        sheet.Rows[offset + cIdx].Cells[7].SetValue(cCard.Health)
+    sheet.Rows[offset].Cells[1].SetValue("Mana Cost:")
+    sheet.Rows[offset].Cells[2].SetValue("Attack:")
+    sheet.Rows[offset].Cells[3].SetValue("Health:")
+    sheet.Rows[offset].Cells[4].SetValue("Count:")
+    offset++
+    sheet.Rows[offset].Cells[0].SetValue(deck.Class + " Cards:")
+    offset++
+    for idx, card := range deck.ClassKeys {
+        sheet.Rows[offset + idx].Cells[0].SetValue(card.Name)
+        sheet.Rows[offset + idx].Cells[1].SetValue(card.Cost)
+        if card.Type == "Minion" {
+            sheet.Rows[offset + idx].Cells[2].SetValue(card.Attack)
+            sheet.Rows[offset + idx].Cells[3].SetValue(card.Health)
+        }
+        sheet.Rows[offset + idx].Cells[4].SetValue(deck.CardList[card])
+        
     }
     offset += len(deck.ClassKeys)
-    sheet.Rows[offset].Cells[0].SetValue("Neutral Card Name:")
     offset++
-    for nIdx, nCard := range deck.NeutralKeys {
-        sheet.Rows[offset + nIdx].Cells[0].SetValue(nCard.Name)
-        sheet.Rows[offset + nIdx].Cells[2].SetValue(nCard.Cost)
-        sheet.Rows[offset + nIdx].Cells[3].SetValue(deck.CardList[nCard])
-        sheet.Rows[offset + nIdx].Cells[4].SetValue(nCard.Class)
-        sheet.Rows[offset + nIdx].Cells[5].SetValue(nCard.Type)
-        sheet.Rows[offset + nIdx].Cells[6].SetValue(nCard.Attack)
-        sheet.Rows[offset + nIdx].Cells[7].SetValue(nCard.Health)
+    sheet.Rows[offset].Cells[0].SetValue("Neutral Cards:")
+    offset++
+    for idx, card := range deck.NeutralKeys {
+        sheet.Rows[offset + idx].Cells[0].SetValue(card.Name)
+        sheet.Rows[offset + idx].Cells[1].SetValue(card.Cost)
+        if card.Type == "Minion" {
+            sheet.Rows[offset + idx].Cells[2].SetValue(card.Attack)
+            sheet.Rows[offset + idx].Cells[3].SetValue(card.Health)
+        }
+        sheet.Rows[offset + idx].Cells[4].SetValue(deck.CardList[card])
     }
     offset += len(deck.NeutralKeys) + 1
     return offset
-
 }

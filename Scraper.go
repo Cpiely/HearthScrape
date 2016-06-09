@@ -2,7 +2,7 @@ package main
 import (
 	"github.com/PuerkitoBio/goquery"
 	"net/http"
-	"fmt"
+	//"fmt"
 	"strings"
 	"strconv"
 )
@@ -53,8 +53,8 @@ func (s *Scraper) CardsFinder(classIndex, neutralIndex map[string]Card) Deck {
 	}
 	return deck
 }
-
-func cardIndexing() (map[string]Card ,map[string]Card) {
+//Gets the Lists of Neutral and Class cards
+func CardIndexing() (map[string]Card ,map[string]Card) {
 	url := "http://www.hearthpwn.com/cards?display=1&filter-premium=1"
 	ext := "&page="
 
@@ -67,6 +67,10 @@ func cardIndexing() (map[string]Card ,map[string]Card) {
 	neutralList := make(map[string]Card, 0)
 	classList := make(map[string]Card, 0)
 
+	return CardInfo(pages, neutralList, classList)
+}
+//Gets the Info for each of the cards on each page
+func CardInfo(pages []string, neutralList ,classList map[string]Card) (map[string]Card , map[string]Card) {
 	card := Card{}
 	neutral := false
 	for _, page := range pages {
@@ -106,18 +110,10 @@ func cardIndexing() (map[string]Card ,map[string]Card) {
 			index++
 		})
 	}
-	return classList, neutralList
+	return neutralList, classList
 }
 
-func (s *Scraper) ModeFinder(deck Deck) Deck {
-	s.document.Find("section p").Each(func (i int, s *goquery.Selection) {
-		if text := s.Contents().Text(); text == "Standard" || text == "Wild" {
-		 	deck.Mode = text
-		}
-	})
-	return deck
-}
-
+//Gets the Moditified, Rating Mode, Class, Name, Type, Expansion, Cost, and Creation Date
 func (s *Scraper) InfoFinder(deck Deck) Deck{
 	date := (s.document.Find("li abbr").First().Text())
 	deck.DateModified = Date(date)
@@ -131,9 +127,14 @@ func (s *Scraper) InfoFinder(deck Deck) Deck{
 		}
 	})
 
+	s.document.Find("section p").Each(func (i int, s *goquery.Selection) {
+		if text := s.Contents().Text(); text == "Standard" || text == "Wild" {
+		 	deck.Mode = text
+		}
+	})
+
 	s.document.Find("ul li span").Each(func (i int, s *goquery.Selection) {
 		text := s.Contents().Text()
-		
 		switch i {
 		case 63:
 			deck.Class = text
@@ -156,7 +157,7 @@ func (s *Scraper) InfoFinder(deck Deck) Deck{
 	})
 	return deck
 }
-
+//Takes in a Date in the form of Jan 1, 2001 and returns 1/1/2001
 func Date (date string) string {
 	var newDate string
 	splitDate := strings.Split(date, " ")
@@ -191,7 +192,7 @@ func Date (date string) string {
 	newDate += splitDate[2]
 	return newDate
 }
-
+//Finds the Urls ont the list of deck pages
 func (s *Scraper) UrlFinder(tags string, prefix string) [] string {
 	urls := make([]string, 0)
 	s.document.Find(tags).Each(func (i int, s *goquery.Selection) {
@@ -201,24 +202,24 @@ func (s *Scraper) UrlFinder(tags string, prefix string) [] string {
 	})
 	return urls
 }
-
+//Gets the document from the site
 func (s *Scraper) getDocument() *goquery.Document {
 	resp := s.getResponse()
-	defer resp.Body.Close()
 	doc, err := goquery.NewDocumentFromResponse(resp)
 	checkErr(err)
+	er := resp.Body.Close()
+	checkErr(er)
 	return doc
 }
-
+//Gets the Webpage from the URl
 func (s *Scraper) getResponse() *http.Response {
-	//fmt.Println(s.url)
 	resp, err := http.Get(s.url)
 	checkErr(err)
 	return resp
 }
-
+//Checks for errors and prints it if there is one
 func checkErr(err error){
 	if err != nil {
-    	fmt.Println(err)
+    	panic(err)
    	}
 }

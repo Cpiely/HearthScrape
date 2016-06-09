@@ -1,21 +1,20 @@
 package main
 
 //ToDo for tomorrow:
-//More info on decks: save the URLs, Authors, date modified, rating, dust cost
 //Impliement json or whatever to store the info
-//
+
 
 import (
 	"fmt"
 	"sort"
 	"strconv"
-	"sync"
+	"time"
 	"github.com/tealeg/xlsx"
 )
 
 func main() {
 	
-	numPages := 5
+	numPages := 30
 	
 	channels := Urls(numPages) 
 	//List of all of the decks
@@ -24,7 +23,10 @@ func main() {
 	deckList := Decks(decks)
 
 	standard, wild, brawl := SeperateModes(deckList)
-	
+	fmt.Println(len(standard), "Standard Decks")
+	fmt.Println(len(wild), "Wild Decks")
+	fmt.Println(len(brawl), "Tavern Brawl Decks")
+
 	file := CreateFile()
 
 	MakeSpreadSheet(file, standard, "Standard")
@@ -34,10 +36,10 @@ func main() {
 	SaveFile(file)
 
 }
-
-func Urls(numPages int) []chan []string {
-	var wg sync.WaitGroup
-	channels := Channels(numPages)
+//Creates the Urls for each of the pages to be scraped
+func Urls(numPages int) chan []string {
+	//var wg sync.WaitGroup
+	channels := make(chan []string, numPages)
 
 	site := "http://www.hearthpwn.com/decks?filter-deck-tag=4&sort=-rating"
 
@@ -52,17 +54,19 @@ func Urls(numPages int) []chan []string {
 		}
 	}
 
-	for idx, page := range pages{
-		wg.Add(1)
+	for _, page := range pages{
+		//wg.Add(1)
 		go func (url string, ch chan []string) {
 			scraper := NewScraper(url)
 			deckNames := scraper.UrlFinder("div span", "/")
-			ch <- deckNames
-			
-		}(page, channels[idx])
-		wg.Done()
+			ch <- deckNames	
+		
+		}(page, channels)
+		//wg.Done()
 	}
-	wg.Wait()
+	time.Sleep(time.Second * 10)
+	close(channels)
+	
 	
 	return channels
 }
@@ -70,31 +74,29 @@ func Urls(numPages int) []chan []string {
 //Creates the unique card list and list of cards from each deck
 func Decks(decks []string) []Deck {
 	//usedCards := make(map[string]int)
-	var wg sync.WaitGroup
+	//var wg sync.WaitGroup
 	var deckCards []Deck
 	ch := make(chan Deck)
-	classCards, neutralCards  := cardIndexing()
+	classCards, neutralCards  := CardIndexing()
 	for _,deck := range decks {
-		wg.Add(1)
+		//wg.Add(1)
 		go func (url string, ch chan Deck) {
 			scraper := NewScraper(url)
 			deckInfo := scraper.CardsFinder(classCards, neutralCards)
-			deckInfo = scraper.ModeFinder(deckInfo)
 			deckInfo = scraper.InfoFinder(deckInfo)
 			deckInfo.Url = url
 
 			ch <- deckInfo
-			wg.Done()
+			//wg.Done()
 		}(deck, ch)
 	}
 	for i := 0; i < len(decks); i++ {
 		deckCards = append(deckCards, <-ch)
 	}
-	wg.Wait()
-	close(ch)
+	//wg.Wait()
 	return deckCards
 }
-
+//Creates each of the Sheets for Standard, Wild, and Brawl modes
 func MakeSpreadSheet(file *xlsx.File, mode []Deck, sheetName string) {
 	sheet := CreateSheet(file, sheetName)
 	offset := 0
@@ -126,21 +128,12 @@ func SeperateModes(decks []Deck) ([]Deck, []Deck, []Deck) {
 	return standard, wild, brawl
 }
 
-//Creates the Channels
-func Channels(num int) []chan []string {
-	channels := make([]chan []string, num)
-	for i := 0; i < num; i++ {
-		channels[i] = make(chan []string)
-	}
-	return channels
-}
-
 //Creates the list of decks
-func Response(channels []chan []string) []string{
+func Response(channels chan []string) []string{
 	decks := make([]string, 0)
 	baseUrl := "http://www.hearthpwn.com"
-	for i := 0; i < len(channels); i++ {	
-		decks = append(decks, <-channels[i]...)		
+	for i := range channels {	
+		decks = append(decks, i...)	
 	}
 	for idx, deck := range decks{
 		decks[idx] = baseUrl + deck
