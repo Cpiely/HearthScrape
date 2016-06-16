@@ -11,7 +11,7 @@ import (
 
 func main() {
 
-	numPages := 10
+	numPages := 2
 
 	channels := Urls(numPages)
 	//List of all of the decks
@@ -21,6 +21,8 @@ func main() {
 	finalDecks := FinalDeckInfo(deckList)
 
 	printResults(finalDecks)
+
+    startTracking(finalDecks)
 
 	file := CreateFile()
 
@@ -138,8 +140,6 @@ func FinalDeckInfo(decks []Deck) AllDecks {
 	sort.Sort(ByRating(standard))
 	sort.Sort(ByRating(wild))
 	sort.Sort(ByRating(brawl))
-	//sort.Sort(ByTypeMode(standardTypeKey))
-	//sort.Sort(ByTypeMode(wildTypeKey))
 
 	finalDecks := AllDecks{
 		NumDecks:        len(decks),
@@ -199,5 +199,6 @@ func printResults(finalDecks AllDecks) {
 	fmt.Println(finalDecks.NumBrawl, "Tavern Brawl Decks")
 	fmt.Println()
 	fmt.Println(finalDecks.NumDecks, "Total Decks")
+    fmt.Println()
 
 }
