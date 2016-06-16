@@ -1,9 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"net/http"
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -164,15 +164,14 @@ func (s *Scraper) InfoFinder(deck Deck) Deck {
 
 //Takes in a Date in the form of Jan 1, 2001 and returns 1/1/2001
 func Date(date string) string {
-	
+
 	var newDate string
 	splitDate := strings.Split(date, " ")
-	months := [12]string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",}
-	
-	for i, month := range(months){
+	months := [12]string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}
+
+	for i, month := range months {
 		if month == splitDate[0] {
 			newDate = strconv.Itoa(i)
-			
 		}
 	}
 
@@ -217,6 +216,6 @@ func checkErr(err error) {
 	}
 }
 
-func fuckImports() {
-	fmt.Println("fuck you")
+func avoidImports() {
+	fmt.Println("")
 }

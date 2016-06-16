@@ -1,8 +1,5 @@
 package main
 
-//ToDo for tomorrow:
-//Impliement json or whatever to store the info
-
 import (
 	"fmt"
 	"github.com/tealeg/xlsx"
@@ -19,20 +16,17 @@ func main() {
 	channels := Urls(numPages)
 	//List of all of the decks
 	decks := Response(channels)
-	//deckUrls := CreateMap(decks)
 	deckList := Decks(decks)
 
-	standard, wild, brawl := SeperateModes(deckList)
-	
-	fmt.Println(len(standard), "Standard Decks")
-	fmt.Println(len(wild), "Wild Decks")
-	fmt.Println(len(brawl), "Tavern Brawl Decks")
+	finalDecks := FinalDeckInfo(deckList)
+
+	printResults(finalDecks)
 
 	file := CreateFile()
 
-	MakeSpreadSheet(file, standard, "Standard")
-	MakeSpreadSheet(file, brawl, "Brawl")
-	MakeSpreadSheet(file, wild, "Wild")
+	MakeSpreadSheet(file, finalDecks.StandardDecks, "Standard")
+	MakeSpreadSheet(file, finalDecks.WildDecks, "Wild")
+	MakeSpreadSheet(file, finalDecks.BrawlDecks, "Brawl")
 
 	SaveFile(file)
 
@@ -65,9 +59,8 @@ func Urls(numPages int) chan []string {
 			ch <- deckNames
 
 		}(page, channels)
-	
+
 	}
-	//time.Sleep(time.Second * 3)
 	wg.Wait()
 
 	close(channels)
@@ -83,9 +76,9 @@ func Decks(decks []string) []Deck {
 	ch := make(chan Deck)
 	classCards, neutralCards := CardIndexing()
 	for _, deck := range decks {
-	//	wg.Add(1)
+		//	wg.Add(1)
 		go func(url string, ch chan Deck) {
-	//		defer wg.Done()
+			//		defer wg.Done()
 			scraper := NewScraper(url)
 			deckInfo := scraper.CardsFinder(classCards, neutralCards)
 			deckInfo = scraper.InfoFinder(deckInfo)
@@ -97,11 +90,9 @@ func Decks(decks []string) []Deck {
 	}
 
 	//wg.Wait()
-
 	for i := 0; i < len(decks); i++ {
 		deckCards = append(deckCards, <-ch)
 	}
-	
 
 	return deckCards
 }
@@ -116,25 +107,56 @@ func MakeSpreadSheet(file *xlsx.File, mode []Deck, sheetName string) {
 }
 
 //Seperates the Deck lists into the different game modes
-func SeperateModes(decks []Deck) ([]Deck, []Deck, []Deck) {
-	
+func FinalDeckInfo(decks []Deck) AllDecks {
+
 	standard := []Deck{}
 	brawl := []Deck{}
 	wild := []Deck{}
 
+	sort.Sort(ByType(decks))
+
+	standardTypes := make(map[string]int)
+	wildTypes := make(map[string]int)
+
+	standardTypeKey := make([]string, 0)
+	wildTypeKey := make([]string, 0)
+
 	for _, deck := range decks {
-		if deck.Mode == "Standard" {
-			standard = append(standard, deck)
-		} else if deck.Mode == "Wild" {
-			wild = append(wild, deck)
-		} else {
+		if deck.Mode == "Tavern Brawl" {
 			brawl = append(brawl, deck)
+		} else if deck.Mode == "Standard" {
+			standardTypeKey = AddKey(standardTypeKey, deck.Type)
+			standardTypes[deck.Type] += 1
+			standard = append(standard, deck)
+		} else {
+			wildTypeKey = AddKey(wildTypeKey, deck.Type)
+			wildTypes[deck.Type] += 1
+			wild = append(wild, deck)
 		}
 	}
+
 	sort.Sort(ByRating(standard))
 	sort.Sort(ByRating(wild))
 	sort.Sort(ByRating(brawl))
-	return standard, wild, brawl
+	//sort.Sort(ByTypeMode(standardTypeKey))
+	//sort.Sort(ByTypeMode(wildTypeKey))
+
+	finalDecks := AllDecks{
+		NumDecks:        len(decks),
+		NumStandard:     len(standard),
+		NumWild:         len(wild),
+		NumBrawl:        len(brawl),
+		StandardTypes:   standardTypes,
+		WildTypes:       wildTypes,
+		WildTypeKey:     wildTypeKey,
+		StandardTypeKey: standardTypeKey,
+		StandardDecks:   standard,
+		BrawlDecks:      brawl,
+		WildDecks:       wild,
+		AllDecks:        decks,
+	}
+
+	return finalDecks
 }
 
 //Creates the list of decks
@@ -150,8 +172,32 @@ func Response(channels chan []string) []string {
 	return decks
 }
 
-func printResults(list []string) {
-	for _, deck := range list {
-		fmt.Println(deck)
+func AddKey(keys []string, key string) []string {
+	contains := false
+	for _, i := range keys {
+		if i == key {
+			contains = true
+		}
 	}
+	if !contains {
+		keys = append(keys, key)
+	}
+	return keys
+}
+
+func printResults(finalDecks AllDecks) {
+	fmt.Println(finalDecks.NumStandard, "Standard Decks:")
+	for _, typ := range finalDecks.StandardTypeKey {
+		fmt.Println(finalDecks.StandardTypes[typ], typ)
+	}
+	fmt.Println()
+	fmt.Println(finalDecks.NumWild, "Wild Decks:")
+	for _, typ := range finalDecks.WildTypeKey {
+		fmt.Println(finalDecks.WildTypes[typ], typ)
+	}
+	fmt.Println()
+	fmt.Println(finalDecks.NumBrawl, "Tavern Brawl Decks")
+	fmt.Println()
+	fmt.Println(finalDecks.NumDecks, "Total Decks")
+
 }

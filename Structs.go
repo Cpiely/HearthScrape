@@ -1,5 +1,20 @@
 package main
 
+type AllDecks struct {
+	NumDecks        int
+	NumStandard     int
+	NumWild         int
+	NumBrawl        int
+	StandardTypes   map[string]int
+	WildTypes       map[string]int
+	StandardTypeKey []string
+	WildTypeKey     []string
+	StandardDecks   []Deck
+	BrawlDecks      []Deck
+	WildDecks       []Deck
+	AllDecks        []Deck
+}
+
 type Deck struct {
 	Name         string
 	Type         string
@@ -25,28 +40,12 @@ type Card struct {
 	Health int
 }
 
-type Month int
-
-const (
-	Jan Month = 1 + iota
-	Feb
-	Mar
-	Apr
-	May
-	Jun
-	Jul
-	Aug
-	Sep
-	Oct
-	Nov
-	Dec
-)
-
 //Used to sort the Structs by different parameters
 type ByName []Card
 type ByCost []Card
 type ByMode []Deck
 type ByType []Deck
+type ByTypeMode []string
 type ByRating []Deck
 
 //type ByDate []Deck
@@ -58,6 +57,13 @@ func (slice ByDeckName) Len() int { return len(slice) }
 func (slice ByDeckName) Less(i, j int) bool { return slice[i].Name < slice[j].Name }
 
 func (slice ByDeckName) Swap(i, j int) { slice[i], slice[j] = slice[j], slice[i] }
+
+//Sort Decks By TypeMode
+func (slice ByTypeMode) Len() int { return len(slice) }
+
+func (slice ByTypeMode) Less(i, j int) bool { return slice[i] < slice[j] }
+
+func (slice ByTypeMode) Swap(i, j int) { slice[i], slice[j] = slice[j], slice[i] }
 
 //Sort Cards By Name
 func (slice ByName) Len() int { return len(slice) }
