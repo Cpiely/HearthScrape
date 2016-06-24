@@ -20,28 +20,31 @@ func NewScraper(url string) *Scraper {
 	return s
 }
 
-func (s *Scraper) CardsFinder(classIndex, neutralIndex map[string]Card) Deck {
+func (s *Scraper) CardsFinder(cards Cards) Deck {
 	var err error
 	classKeys := make([]Card, 0)
 	neutralKeys := make([]Card, 0)
-	cardList := make(map[Card]int)
+	cardList := make(map[string]int)
 	card := Card{}
 	ok := true
+	deckID := ""
 	//Finds each of the cards in the deck
 	s.document.Find("tr ").Each(func(i int, s *goquery.Selection) {
 		info := strings.TrimSpace(strings.Replace(s.Contents().Text(), "\n", "", -1))
 		splitInfo := strings.Split(info, "    ")
 		//Filters out anything that isn't actually a card
 		if len(splitInfo) == 2 {
+			cardName := splitInfo[0]
 			numCost := string((strings.Split(splitInfo[1], " ")[2])[:])
 			//Change to have it add the card from the list of all cards
-			if card, ok = classIndex[splitInfo[0]]; !ok {
-				card = neutralIndex[splitInfo[0]]
+			if card, ok = cards.Class[cardName]; !ok {
+				card = cards.Neutral[cardName]
 				neutralKeys = append(neutralKeys, card)
 			} else {
 				classKeys = append(classKeys, card)
 			}
-			cardList[card], err = strconv.Atoi(string(numCost[0]))
+			cardList[cardName], err = strconv.Atoi(string(numCost[0]))
+			deckID += cardName
 			checkErr(err)
 		}
 	})
@@ -50,6 +53,7 @@ func (s *Scraper) CardsFinder(classIndex, neutralIndex map[string]Card) Deck {
 		CardList:    cardList,
 		ClassKeys:   classKeys,
 		NeutralKeys: neutralKeys,
+		DeckID:      deckID,
 	}
 	return deck
 }
@@ -174,10 +178,7 @@ func Date(date string) string {
 			newDate = strconv.Itoa(i)
 		}
 	}
-
-	newDate += "/"
-	newDate += string(splitDate[1][:len(splitDate[1])-1]) + "/"
-	newDate += splitDate[2]
+	newDate += "/" + string(splitDate[1][:len(splitDate[1])-1]) + "/" + splitDate[2]
 	return newDate
 }
 

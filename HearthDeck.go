@@ -6,23 +6,28 @@ import (
 	"sort"
 	"strconv"
 	"sync"
-	//"time"
+    "encoding/json"
+    "io/ioutil"
+    "bytes"
 )
 
 func main() {
-
-	numPages := 2
+    
+	numPages := 10
 
 	channels := Urls(numPages)
-	//List of all of the decks
+	//List of all of the deck names
 	decks := Response(channels)
-	deckList := Decks(decks)
+    //List of decks, List of cards
+	deckList, cardList := Decks(decks)
 
+    deckList = RemoveDupes(deckList)
+    //AllDecks
 	finalDecks := FinalDeckInfo(deckList)
-
+    toJson(finalDecks, cardList)
 	printResults(finalDecks)
 
-    startTracking(finalDecks)
+    //startTracking(finalDecks)
 
 	file := CreateFile()
 
@@ -71,18 +76,23 @@ func Urls(numPages int) chan []string {
 }
 
 //Creates the unique card list and list of cards from each deck
-func Decks(decks []string) []Deck {
+func Decks(decks []string) ([]Deck, Cards) {
 	//usedCards := make(map[string]int)
 	//var wg sync.WaitGroup
 	var deckCards []Deck
 	ch := make(chan Deck)
+
 	classCards, neutralCards := CardIndexing()
+    cards := Cards {
+        Neutral: neutralCards,
+        Class: classCards,
+    }
 	for _, deck := range decks {
 		//	wg.Add(1)
 		go func(url string, ch chan Deck) {
 			//		defer wg.Done()
 			scraper := NewScraper(url)
-			deckInfo := scraper.CardsFinder(classCards, neutralCards)
+			deckInfo := scraper.CardsFinder(cards)
 			deckInfo = scraper.InfoFinder(deckInfo)
 			deckInfo.Url = url
 
@@ -96,7 +106,7 @@ func Decks(decks []string) []Deck {
 		deckCards = append(deckCards, <-ch)
 	}
 
-	return deckCards
+	return deckCards, cards
 }
 
 //Creates each of the Sheets for Standard, Wild, and Brawl modes
@@ -185,6 +195,24 @@ func AddKey(keys []string, key string) []string {
 	return keys
 }
 
+func RemoveDupes(deckList []Deck) []Deck {
+    toRemove := make([]int, 0)
+    for i, deck := range(deckList) {
+        for x := i+1; x < len(deckList); x++ {
+            if deck.DeckID == deckList[x].DeckID {
+                toRemove = append(toRemove, x)
+            }
+        }
+    }
+
+    for _,i := range toRemove {
+        if i < len(deckList) {
+            deckList = append(deckList[:i], deckList[i+1:]...)
+        }
+    }
+    return deckList
+}
+
 func printResults(finalDecks AllDecks) {
 	fmt.Println(finalDecks.NumStandard, "Standard Decks:")
 	for _, typ := range finalDecks.StandardTypeKey {
@@ -200,5 +228,20 @@ func printResults(finalDecks AllDecks) {
 	fmt.Println()
 	fmt.Println(finalDecks.NumDecks, "Total Decks")
     fmt.Println()
+}
 
+func toJson(decks AllDecks, cards Cards) {
+    var outDeck bytes.Buffer
+    var outCards bytes.Buffer
+    deckJson, err := json.Marshal(decks)
+    checkErr(err)
+    cardsJson, err := json.Marshal(cards)
+    checkErr(err)
+    json.Indent(&outDeck, deckJson, "", "\t")
+    json.Indent(&outCards, cardsJson, "", "\t")
+
+    err = ioutil.WriteFile("./data/deck.json", outDeck.Bytes(), 0644)
+    checkErr(err)
+    err = ioutil.WriteFile("./data/cards.json", outCards.Bytes(), 0644)
+    checkErr(err)
 }

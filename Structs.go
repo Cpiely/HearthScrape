@@ -26,9 +26,10 @@ type Deck struct {
 	DateCreated  string
 	DateModified string
 	Mode         string
-	CardList     map[Card]int
+	CardList     map[string]int
 	ClassKeys    []Card
 	NeutralKeys  []Card
+    DeckID string
 }
 
 type Card struct {
@@ -38,6 +39,11 @@ type Card struct {
 	Cost   int
 	Attack int
 	Health int
+}
+//Add more stuff here, like classes, rarity, etc
+type Cards struct {
+    Neutral map[string]Card
+    Class map[string]Card
 }
 
 //Used to sort the Structs by different parameters

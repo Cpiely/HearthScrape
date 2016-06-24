@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/tealeg/xlsx"
 	"sort"
+    "time"
+    "strings"
 )
 
 func CreateFile() *xlsx.File {
@@ -20,7 +22,8 @@ func CreateSheet(file *xlsx.File, sheetName string) *xlsx.Sheet {
 }
 
 func SaveFile(file *xlsx.File) {
-	err := file.Save("MyXLSXFile.xlsx")
+    date := strings.Split(time.Now().String(), " ")[0]
+	err := file.Save(date + "-decks.xlsx")
 	if err != nil {
 		fmt.Printf(err.Error())
 	}
@@ -73,7 +76,7 @@ func PrintDeck(sheet *xlsx.Sheet, deck Deck, offset int) int {
 			sheet.Rows[offset+idx].Cells[2].SetValue(card.Attack)
 			sheet.Rows[offset+idx].Cells[3].SetValue(card.Health)
 		}
-		sheet.Rows[offset+idx].Cells[4].SetValue(deck.CardList[card])
+		sheet.Rows[offset+idx].Cells[4].SetValue(deck.CardList[card.Name])
 
 	}
 	offset += len(deck.ClassKeys)
@@ -87,7 +90,7 @@ func PrintDeck(sheet *xlsx.Sheet, deck Deck, offset int) int {
 			sheet.Rows[offset+idx].Cells[2].SetValue(card.Attack)
 			sheet.Rows[offset+idx].Cells[3].SetValue(card.Health)
 		}
-		sheet.Rows[offset+idx].Cells[4].SetValue(deck.CardList[card])
+		sheet.Rows[offset+idx].Cells[4].SetValue(deck.CardList[card.Name])
 	}
 	offset += len(deck.NeutralKeys) + 1
 	return offset
